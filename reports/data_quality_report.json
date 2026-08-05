@@ -1,0 +1,73 @@
+{
+  "processed": {
+    "scope": "processed",
+    "ok": true,
+    "stats": {
+      "flights_clean": {
+        "rows": 271888,
+        "cols": 16
+      },
+      "hotels_clean": {
+        "rows": 40552,
+        "cols": 10
+      },
+      "users_clean": {
+        "rows": 1340,
+        "cols": 6
+      },
+      "trips": {
+        "rows": 135944,
+        "cols": 15
+      },
+      "users_features": {
+        "rows": 1340,
+        "cols": 19
+      },
+      "flight_price_model": {
+        "rows": 271888,
+        "cols": 10
+      },
+      "gender_features": {
+        "rows": 1340,
+        "cols": 24
+      },
+      "user_hotel_interactions": {
+        "rows": 9724,
+        "cols": 6
+      },
+      "hotel_catalog": {
+        "rows": 9,
+        "cols": 7
+      }
+    },
+    "errors": [],
+    "warnings": [],
+    "passed": [
+      "[flights_clean] present, 271,888 rows",
+      "[flights_clean] key columns intact",
+      "[hotels_clean] present, 40,552 rows",
+      "[hotels_clean] key columns intact",
+      "[users_clean] present, 1,340 rows",
+      "[users_clean] key columns intact",
+      "[trips] present, 135,944 rows",
+      "[trips] key columns intact",
+      "[users_features] present, 1,340 rows",
+      "[users_features] key columns intact",
+      "[flight_price_model] present, 271,888 rows",
+      "[flight_price_model] key columns intact",
+      "[gender_features] present, 1,340 rows",
+      "[gender_features] key columns intact",
+      "[user_hotel_interactions] present, 9,724 rows",
+      "[user_hotel_interactions] key columns intact",
+      "[hotel_catalog] present, 9 rows",
+      "[hotel_catalog] key columns intact",
+      "[flights_clean] every trip has exactly 2 legs",
+      "[hotels_clean] total == price * days",
+      "[trips] trip_nights within 1-4",
+      "[trips] no negative spend",
+      "[flight_price_model] target 'price' clean and positive",
+      "[trips] every user exists in users_features",
+      "[gender_features] 900 labelled, 440 to impute"
+    ]
+  }
+}

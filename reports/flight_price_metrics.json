@@ -1,0 +1,101 @@
+{
+  "best_model": "gbr_rate_per_km",
+  "selected_on": "grouped (held-out routes)",
+  "features": {
+    "categorical": [
+      "from",
+      "to",
+      "flightType",
+      "agency",
+      "day_of_week"
+    ],
+    "numeric": [
+      "distance",
+      "year",
+      "month"
+    ]
+  },
+  "target": "price",
+  "results": [
+    {
+      "split": "random",
+      "model": "ridge",
+      "mse": 10640.48,
+      "rmse": 103.1527,
+      "mae": 81.2698,
+      "r2": 0.919249,
+      "mape_pct": 10.4177,
+      "fit_seconds": 0.53
+    },
+    {
+      "split": "random",
+      "model": "decision_tree",
+      "mse": 198.67,
+      "rmse": 14.095,
+      "mae": 5.1102,
+      "r2": 0.998492,
+      "mape_pct": 0.5895,
+      "fit_seconds": 1.88
+    },
+    {
+      "split": "random",
+      "model": "hist_gbr",
+      "mse": 8.84,
+      "rmse": 2.9727,
+      "mae": 2.1749,
+      "r2": 0.999933,
+      "mape_pct": 0.2563,
+      "fit_seconds": 16.34
+    },
+    {
+      "split": "random",
+      "model": "gbr_rate_per_km",
+      "mse": 11.25,
+      "rmse": 3.3544,
+      "mae": 2.3539,
+      "r2": 0.999915,
+      "mape_pct": 0.2635,
+      "fit_seconds": 11.53
+    },
+    {
+      "split": "grouped",
+      "model": "ridge",
+      "mse": 15431.58,
+      "rmse": 124.2239,
+      "mae": 96.9752,
+      "r2": 0.856855,
+      "mape_pct": 12.7306,
+      "fit_seconds": 0.47
+    },
+    {
+      "split": "grouped",
+      "model": "decision_tree",
+      "mse": 30899.15,
+      "rmse": 175.7815,
+      "mae": 138.2099,
+      "r2": 0.713377,
+      "mape_pct": 15.5124,
+      "fit_seconds": 1.71
+    },
+    {
+      "split": "grouped",
+      "model": "hist_gbr",
+      "mse": 32502.54,
+      "rmse": 180.2846,
+      "mae": 133.3533,
+      "r2": 0.698504,
+      "mape_pct": 16.0276,
+      "fit_seconds": 11.34
+    },
+    {
+      "split": "grouped",
+      "model": "gbr_rate_per_km",
+      "mse": 7918.78,
+      "rmse": 88.9875,
+      "mae": 69.0778,
+      "r2": 0.926545,
+      "mape_pct": 8.5421,
+      "fit_seconds": 13.9
+    }
+  ]
+}

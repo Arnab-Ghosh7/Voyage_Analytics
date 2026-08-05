@@ -1,0 +1,20 @@
+# Serving-only dependencies — deliberately a subset of the project requirements.
+#
+# The training stack (mlflow, jupyter, matplotlib, seaborn, xgboost, great-
+# expectations) is NOT installed here. The container only has to load a fitted
+# pipeline and answer HTTP, so shipping the training tooling would triple the
+# image size and widen the attack surface for no benefit.
+#
+# IMPORTANT: scikit-learn, numpy and scipy are pinned to the exact versions the
+# models were fitted with. A joblib artifact carries no version metadata, so a
+# mismatch here surfaces as a corrupt-looking unpickle or, worse, silently
+# different predictions.
+
+flask==3.0.3
+waitress==3.0.0
+
+scikit-learn==1.6.1
+numpy==1.26.4
+scipy==1.15.2
+pandas==2.2.2
+joblib==1.4.2

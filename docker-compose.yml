@@ -1,0 +1,57 @@
+# Voyage Analytics — local stack
+#
+#   docker compose up --build            # API only
+#   docker compose --profile tracking up # API + MLflow UI
+#   docker compose down
+#
+# The API image is self-contained; MLflow is a separate optional service so the
+# production image never carries the tracking stack.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: voyage-analytics-api:latest
+    container_name: voyage-api
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      # Generous start period: the container warms every model before it is ready.
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped
+    # A prediction service needs no write access to its own filesystem.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Optional: MLflow UI over the local run store. Enabled with --profile tracking.
+  mlflow:
+    image: python:3.12-slim
+    container_name: voyage-mlflow
+    profiles: ["tracking"]
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./mlflow:/mlflow
+    working_dir: /mlflow
+    command: >
+      sh -c "pip install --no-cache-dir mlflow==2.16.2 &&
+             mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri file:///mlflow/mlruns"
+    restart: unless-stopped

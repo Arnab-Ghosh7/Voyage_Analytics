@@ -1,0 +1,47 @@
+# Keep the build context small and the image free of anything the API cannot use.
+#
+# NOTE: models/ is deliberately NOT ignored — the fitted pipelines are the whole
+# point of the image. It appears in .gitignore (artifacts don't belong in git)
+# but must be present here.
+
+# ---- data (the API never reads raw or intermediate data) ----
+data/
+reports/
+
+# ---- notebooks & analysis ----
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# ---- experiment tracking ----
+mlflow/
+mlruns/
+models/tuned/
+
+# ---- local environment ----
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---- vcs / editors / os ----
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- tests & docs (not needed at runtime) ----
+tests/
+docs/
+*.md
+!README.md
+
+# ---- misc ----
+*.log
+.env
+pipelines/

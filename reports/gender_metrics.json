@@ -1,0 +1,97 @@
+{
+  "best_model": "name_logistic",
+  "baseline_accuracy": 0.5022,
+  "best_cv_accuracy": 0.8778,
+  "best_cv_accuracy_unseen_names": 0.7433,
+  "lift_over_baseline": 0.3756,
+  "verdict": "predictive from the first name: 0.8778 standard CV, 0.7433 on names never seen in training (behaviour features alone remain at chance)",
+  "n_labelled": 900,
+  "n_imputed": 440,
+  "features": {
+    "categorical": [
+      "company",
+      "home_city"
+    ],
+    "numeric": [
+      "age",
+      "n_trips",
+      "recency_days",
+      "total_spend",
+      "flight_spend",
+      "hotel_spend",
+      "avg_trip_spend",
+      "avg_trip_nights",
+      "avg_distance",
+      "n_destinations",
+      "hotel_attach_rate",
+      "share_class_economic",
+      "share_class_firstClass",
+      "share_class_premium",
+      "share_agency_CloudFy",
+      "share_agency_FlyingDrops",
+      "share_agency_Rainbow"
+    ]
+  },
+  "results": [
+    {
+      "model": "baseline_majority",
+      "cv_accuracy": 0.5022,
+      "cv_std": 0.0027,
+      "cv_accuracy_unseen_names": 0.48,
+      "test_accuracy": 0.5022,
+      "test_f1": 0.6686,
+      "test_roc_auc": 0.5,
+      "lift_over_baseline": 0.0
+    },
+    {
+      "model": "behaviour_logistic",
+      "cv_accuracy": 0.4711,
+      "cv_std": 0.0184,
+      "cv_accuracy_unseen_names": 0.4933,
+      "test_accuracy": 0.52,
+      "test_f1": 0.5135,
+      "test_roc_auc": 0.4972,
+      "lift_over_baseline": -0.0311
+    },
+    {
+      "model": "behaviour_rf",
+      "cv_accuracy": 0.5044,
+      "cv_std": 0.0321,
+      "cv_accuracy_unseen_names": 0.4822,
+      "test_accuracy": 0.5289,
+      "test_f1": 0.5225,
+      "test_roc_auc": 0.5153,
+      "lift_over_baseline": 0.0022
+    },
+    {
+      "model": "behaviour_hist_gbr",
+      "cv_accuracy": 0.5044,
+      "cv_std": 0.0323,
+      "cv_accuracy_unseen_names": 0.4722,
+      "test_accuracy": 0.5111,
+      "test_f1": 0.5175,
+      "test_roc_auc": 0.5058,
+      "lift_over_baseline": 0.0022
+    },
+    {
+      "model": "name_logistic",
+      "cv_accuracy": 0.8778,
+      "cv_std": 0.0233,
+      "cv_accuracy_unseen_names": 0.7433,
+      "test_accuracy": 0.8533,
+      "test_f1": 0.8559,
+      "test_roc_auc": 0.9268,
+      "lift_over_baseline": 0.3756
+    },
+    {
+      "model": "name_plus_behaviour",
+      "cv_accuracy": 0.8533,
+      "cv_std": 0.012,
+      "cv_accuracy_unseen_names": 0.7167,
+      "test_accuracy": 0.8356,
+      "test_f1": 0.8398,
+      "test_roc_auc": 0.9076,
+      "lift_over_baseline": 0.3511
+    }
+  ]
+}

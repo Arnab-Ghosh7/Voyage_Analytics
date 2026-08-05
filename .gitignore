@@ -1,0 +1,35 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---- Virtual environment ----
+.venv/
+venv/
+env/
+
+# ---- Data (versioned via DVC, not git) ----
+data/interim/
+data/processed/
+data/external/
+# keep raw CSVs tracked; ignore generated interim/processed regardless of format
+
+# ---- ML / experiment artifacts ----
+mlruns/
+mlflow/mlruns/
+mlflow/artifacts/
+models/tuned/
+*.pkl
+*.joblib
+reports/figures/*.png
+
+# ---- OS / IDE ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---- Env / secrets ----
+.env
+*.log

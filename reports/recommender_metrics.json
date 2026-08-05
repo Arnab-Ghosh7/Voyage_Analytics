@@ -1,0 +1,38 @@
+{
+  "ranking": {
+    "top_k": 3,
+    "best_strategy": "item_cf",
+    "results": [
+      {
+        "strategy": "item_cf",
+        "hit_rate@3": 0.8584,
+        "precision@3": 0.2861,
+        "n_users": 1285
+      },
+      {
+        "strategy": "next_dest_heuristic",
+        "hit_rate@3": 0.3969,
+        "precision@3": 0.1323,
+        "n_users": 1285
+      },
+      {
+        "strategy": "popularity",
+        "hit_rate@3": 0.3642,
+        "precision@3": 0.1214,
+        "n_users": 1285
+      }
+    ]
+  },
+  "attach_model": {
+    "base_rate": 0.2983,
+    "majority_baseline_accuracy": 0.7017,
+    "accuracy": 0.7017,
+    "f1": 0.0,
+    "roc_auc": 0.5003
+  },
+  "notes": [
+    "Hotel and city are bijective (9 hotels, one per city). If the destination is known at request time the hotel is determined exactly, so ranking only matters when the destination is unknown.",
+    "Random top-3 of 9 hotels = 0.333 hit rate; judge strategies against that.",
+    "Attach model AUC=0.5003 against a 29.8% base rate: whether a trip books a hotel is NOT predictable from trip context in this data."
+  ]
+}
