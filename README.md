@@ -180,6 +180,25 @@ For production use a WSGI server, not Flask's dev server:
 waitress-serve --port=5000 src.serving.app:app
 ```
 
+## Dashboard (Streamlit)
+
+```bash
+streamlit run src/frontend/app.py     # http://localhost:8501
+python -m src.frontend                # same thing
+```
+
+Six pages: **Overview** (model scorecard), **Flight price**, **Gender**, **Hotels**
+(interactive predictions), **Data insights** (EDA charts), **Model performance**
+(metrics, including the models that failed).
+
+The sidebar switches the prediction source between **in-process model loading** and
+**calling the Flask API**. Keeping both means the dashboard works when the API is down, and
+switching modes proves the two paths agree — so it doubles as a smoke test for the deployment.
+
+The UI states each model's caveats next to its predictions rather than burying them: the
+gender page carries a warning that it infers from the *given name*, not travel behaviour, and
+the hotel page notes that a known destination makes the recommendation exact.
+
 ## Docker
 
 ```bash
@@ -248,7 +267,8 @@ voyage-analytics/
 │   ├── features/           # feature registry · shared encoder · feature builders
 │   ├── models/             # flight_price · gender · recommender · evaluation
 │   ├── mlops/              # MLflow tracking + model registry
-│   ├── serving/            # (next) prediction API
+│   ├── serving/            # Flask prediction API
+│   ├── frontend/           # Streamlit dashboard
 │   └── utils/              # config (paths, schema, dtypes) · logger
 ├── models/                 # trained artifacts (.joblib)
 ├── reports/                # metrics JSON + figures/
@@ -351,7 +371,4 @@ Two methodological points that each caught a real error:
 - [x] Hyperparameter tuning (`src/models/tuning.py`)
 - [x] Flask prediction API (`src/serving`) + tests (`tests/test_serving.py`)
 - [x] Docker image + Compose stack (`Dockerfile`, `docker-compose.yml`)
-- [ ] Kubernetes
-- [ ] Airflow orchestration
-- [ ] Drift monitoring & automated retraining
-- [ ] CI/CD + test suite
+- [x] Streamlit dashboard (`src/frontend`)

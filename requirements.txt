@@ -1,4 +1,7 @@
-# ---- Core data / EDA ----
+# Voyage Analytics — project requirements
+
+
+
 pandas==2.2.2
 numpy==1.26.4
 scipy==1.15.2
@@ -13,12 +16,10 @@ notebook==7.2.2
 ipykernel==6.29.4
 nbformat==5.10.4
 
-# ---- Machine learning ----
 scikit-learn==1.6.1
 xgboost==2.1.1
 lightgbm==4.5.0
 
-# ---- MLOps / tracking / serving (added incrementally as phases land) ----
 mlflow==2.16.2
 fastapi==0.115.0
 uvicorn==0.30.6
@@ -28,7 +29,18 @@ pydantic==2.9.2
 joblib==1.4.2
 
 # ---- Data quality / validation ----
-great-expectations==1.0.5
+# Validation is hand-rolled in src/validation (no third-party dependency).
+#
+# great-expectations is intentionally NOT pinned here. It was listed during
+# planning as the eventual replacement for the hand-rolled checks, but it is
+# never imported, and version 1.0.5 requires pandas<2.2 — which conflicts with
+# the pandas 2.2.2 the models were fitted against. Installing it would force a
+# pandas downgrade purely for a package the project does not use.
+#
+# When the checks are migrated to Great Expectations, install it in a separate
+# environment (or use a release compatible with pandas>=2.2) and retrain, rather
+# than downgrading pandas here:
+#     pip install "great-expectations>=1.1"
 
 # ---- Utilities ----
 python-dotenv==1.0.1
