@@ -1,0 +1,94 @@
+# Voyage Analytics — prediction API deployment (project objective #4)
+#
+#   kubectl apply -f k8s/
+#
+# The probe configuration below is driven by a measurement, not a guess: loading
+# the gradient-boosting pipeline cold takes 9–16 s depending on page cache. A
+# default readiness probe would mark the pod unready and restart it in a loop,
+# so a startupProbe absorbs the slow boot and only then hands over to the
+# liveness/readiness pair.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voyage-api
+  labels:
+    app: voyage-api
+    component: model-serving
+spec:
+  replicas: 2                      # two pods so a rolling update never drops traffic
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: voyage-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0            # never take capacity below the desired count
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: voyage-api
+        component: model-serving
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: api
+          image: voyage-analytics-api:latest
+          # For a local cluster (Docker Desktop / minikube) the image is built
+          # locally and never pushed, so pulling would fail.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: voyage-api-config
+
+          # ---- probes -------------------------------------------------------
+          # startupProbe: tolerates up to 20 x 5s = 100s of model loading before
+          # the container is considered failed. Neither of the other probes runs
+          # until this one succeeds.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"       # the models alone occupy ~200Mi once warm
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp       # the only writable path the app needs
+      volumes:
+        - name: tmp
+          emptyDir: {}

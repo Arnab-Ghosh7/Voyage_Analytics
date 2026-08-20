@@ -1,0 +1,26 @@
+# Service + ConfigMap for the prediction API.
+apiVersion: v1
+kind: Service
+metadata:
+  name: voyage-api
+  labels:
+    app: voyage-api
+spec:
+  # NodePort keeps this reachable on a local cluster without an ingress
+  # controller. Switch to ClusterIP + Ingress for a real deployment.
+  type: NodePort
+  selector:
+    app: voyage-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30500          # http://localhost:30500 on Docker Desktop
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: voyage-api-config
+data:
+  PORT: "5000"
+  PYTHONUNBUFFERED: "1"

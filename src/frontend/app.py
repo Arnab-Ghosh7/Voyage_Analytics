@@ -1,18 +1,15 @@
 """Streamlit dashboard for Voyage Analytics (project objective #9).
 
 An interactive front end over the three validated models, plus the EDA findings
-and the measured model scorecard.
+and the measured model scorecard. Styling lives in :mod:`src.frontend.theme`.
 
-Two serving modes, chosen in the sidebar:
+Two serving modes, chosen in the header:
 
 ``direct``
     Loads the joblib pipelines in-process. Always works; no API required.
 ``api``
     Calls the Flask service at ``/predict/*``. Exercises the real deployment
     path, so the dashboard doubles as a smoke test for the API.
-
-Keeping both is deliberate: the dashboard stays usable when the API is down, and
-switching modes proves the two paths agree.
 
 Run::
 
@@ -22,29 +19,28 @@ Run::
 from __future__ import annotations
 
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 # ``streamlit run`` executes this file as a script, so the repo root is not on
 # sys.path the way it is for ``python -m``.
 _ROOT = next(p for p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]
              if (p / "requirements.txt").exists())
-import sys                                                          # noqa: E402
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from src.utils import PATHS                                         # noqa: E402
+from src.utils import PATHS                                          # noqa: E402
+from src.frontend import theme as T                                  # noqa: E402
 
-PALETTE = ["#0B6E4F", "#08A045", "#6BBF59", "#F2C14E", "#F78154", "#B4436C", "#4C6EF5"]
 API_DEFAULT = "http://127.0.0.1:5000"
 
 st.set_page_config(page_title="Voyage Analytics", page_icon="✈️",
-                   layout="wide", initial_sidebar_state="expanded")
+                   layout="wide", initial_sidebar_state="collapsed")
 
 
 # --------------------------------------------------------------------------- #
@@ -164,94 +160,118 @@ def recommend_hotels(mode: str, base: str, destination: str | None, k: int) -> d
 # --------------------------------------------------------------------------- #
 # Pages                                                                        #
 # --------------------------------------------------------------------------- #
-def page_overview() -> None:
-    st.title("✈️ Voyage Analytics")
-    st.caption("Integrating MLOps in Travel — productionised machine learning on "
-               "Brazilian corporate travel data, 2019–2023")
+def page_home() -> None:
+    T.hero()
+    T.action_cards()
+    T.feature_cards()
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Flight legs", "271,888")
-    c2.metric("Hotel stays", "40,552")
-    c3.metric("Travellers", "1,340")
-    c4.metric("Cities · routes", "9 · 70")
+    T.section("Platform at a glance", "The dataset behind every prediction", "📊")
+    c = st.columns(4)
+    for col, (lbl, val) in zip(c, [("Flight legs", "271,888"), ("Hotel stays", "40,552"),
+                                   ("Travellers", "1,340"), ("Cities · routes", "9 · 70")]):
+        col.metric(lbl, val)
 
-    st.subheader("Model scorecard")
-    st.caption("All figures cross-validated on held-out splits — see the "
-               "caveats below each one.")
-
-    val = get_report("model_validation")
-    rows = []
-    if val:
-        fp = val.get("flight_price", {})
-        if fp:
-            best = max(fp, key=lambda k: fp[k]["r2"]["mean"])
-            rows.append({
-                "Model": f"Flight price ({best})", "Type": "Regression",
-                "Metric": "R²", "Score": fp[best]["r2"]["mean"],
-                "95% CI": f"[{fp[best]['r2']['ci_low']:.3f}, {fp[best]['r2']['ci_high']:.3f}]",
-                "vs chance": "—", "Status": "✅ Valid"})
-        g = {k: v for k, v in val.get("gender", {}).items() if k != "permutation_test"}
-        if g:
-            best = max(g, key=lambda k: g[k]["accuracy"]["mean"])
-            perm = val["gender"].get("permutation_test", {})
-            rows.append({
-                "Model": f"Gender ({best})", "Type": "Classification",
-                "Metric": "Accuracy", "Score": g[best]["accuracy"]["mean"],
-                "95% CI": f"[{g[best]['accuracy']['ci_low']:.3f}, {g[best]['accuracy']['ci_high']:.3f}]",
-                "vs chance": f"0.500 · p={perm.get('p_value')}",
-                "Status": "✅ Valid" if perm.get("significant_at_0.05") else "❌ At chance"})
-        rk = val.get("hotel_ranking", {})
-        if rk:
-            best = max(rk, key=lambda k: rk[k]["hit_rate"])
-            rows.append({
-                "Model": f"Hotel ranking ({best})", "Type": "Collaborative filtering",
-                "Metric": "hit@3", "Score": rk[best]["hit_rate"],
-                "95% CI": f"[{rk[best]['ci_low']:.3f}, {rk[best]['ci_high']:.3f}]",
-                "vs chance": f"{rk[best]['random_baseline']:.3f}", "Status": "✅ Valid"})
-        at = val.get("hotel_attach", {})
-        if at:
-            rows.append({
-                "Model": "Hotel attach", "Type": "Classification",
-                "Metric": "ROC AUC", "Score": at["roc_auc"]["mean"],
-                "95% CI": f"[{at['roc_auc']['ci_low']:.3f}, {at['roc_auc']['ci_high']:.3f}]",
-                "vs chance": "0.500", "Status": "❌ At chance — not served"})
-
-    if rows:
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True,
-                     column_config={"Score": st.column_config.NumberColumn(format="%.4f")})
-    else:
-        st.info("Run `python main.py` to generate the model reports.")
-
-    st.subheader("What the data turned out to be")
+    T.section("What the data turned out to be", "", "🔍")
     a, b = st.columns(2)
     with a:
-        st.markdown("""
-**Flight price is a rate card.** `(route, class, agency)` fixes the fare exactly.
-A random train/test split therefore scores R² ≈ 1.0 by *memorising* it — so models
-are selected on **held-out routes** instead. Predicting **price per km** rather than
-raw price cut error by **49%**, because the rate transfers to routes never seen.
-""")
+        st.markdown(T.panel_open("Flight price is a rate card", "objective #1") + """
+<p style="font-size:.9rem;color:#5A6B85;line-height:1.6">
+<code>(route, class, agency)</code> fixes the fare exactly, so a random train/test split
+scores R² ≈ 1.0 by <b>memorising</b> it. Models are selected on <b>held-out routes</b>
+instead. Predicting <b>price per km</b> rather than raw price cut error by <b>49%</b>,
+because the rate transfers to routes never seen.</p></div>""",
+                    unsafe_allow_html=True)
     with b:
-        st.markdown("""
-**Two models sit at chance, honestly reported.** Gender is unpredictable from travel
-behaviour (|r| ≤ 0.06) — the working model reads the *first name* instead. Hotel
-attach is uniform ~30% across every segment (AUC 0.498), so it is logged but
-**neither registered nor served**.
-""")
+        st.markdown(T.panel_open("Two models sit at chance", "reported honestly") + """
+<p style="font-size:.9rem;color:#5A6B85;line-height:1.6">
+Gender is unpredictable from travel behaviour (|r| ≤ 0.06) — the working model reads the
+<b>first name</b> instead. Hotel attach is a uniform ~30% across every segment
+(AUC 0.498), so it is logged but <b>neither registered nor served</b>.</p></div>""",
+                    unsafe_allow_html=True)
+
+
+def page_dashboard() -> None:
+    T.section("Travel Analytics Dashboard",
+              "Monitor model performance, travel insights and ML pipeline status", "📈")
+
+    val = get_report("model_validation")
+    fp = val.get("flight_price", {})
+    gm = {k: v for k, v in val.get("gender", {}).items() if k != "permutation_test"}
+    rk = val.get("hotel_ranking", {})
+    at = val.get("hotel_attach", {})
+
+    fb = max(fp, key=lambda k: fp[k]["r2"]["mean"]) if fp else None
+    gb = max(gm, key=lambda k: gm[k]["accuracy"]["mean"]) if gm else None
+    rb = max(rk, key=lambda k: rk[k]["hit_rate"]) if rk else None
+
+    if not fb:
+        st.info("Run `python main.py` to generate the model reports.")
+        return
+
+    r2 = fp[fb]["r2"]["mean"]
+    acc = gm[gb]["accuracy"]["mean"]
+    hit = rk[rb]["hit_rate"]
+
+    st.markdown('<div class="mgrid">'
+                + T.metric_card("✈️", "Flight Price Model", f"{r2*100:.1f}%", "R² Score",
+                                "High prediction accuracy on unseen routes",
+                                T.GRADIENTS["blue"], r2)
+                + T.metric_card("📊", "Gender Prediction", f"{acc*100:.1f}%",
+                                "Model Accuracy",
+                                "From the first name — not travel behaviour",
+                                T.GRADIENTS["green"], acc)
+                + T.metric_card("🏨", "Hotel Recommender", f"{hit*100:.1f}%", "Hit@3",
+                                "Recommendation success rate vs 33.3% random",
+                                T.GRADIENTS["orange"], hit)
+                + '</div>', unsafe_allow_html=True)
+
+    # The model that failed gets a card too — omitting it would misrepresent the work.
+    if at:
+        auc = at["roc_auc"]["mean"]
+        st.markdown('<div class="mgrid" style="grid-template-columns:1fr 2fr">'
+                    + T.metric_card("🚫", "Hotel Attach Model", f"{auc*100:.1f}%",
+                                    "ROC AUC — chance is 50%",
+                                    "Not registered, not served",
+                                    "linear-gradient(135deg,#64748B 0%,#475569 100%)",
+                                    auc, status="At chance", warn=True)
+                    + '</div>', unsafe_allow_html=True)
+
+    left, right = st.columns([1.15, 1])
+    with left:
+        st.markdown(
+            T.panel_open("ML Pipeline", "Current machine learning workflow", "Running")
+            + T.prow("🗄️", "Data Validation", "22 checks passed on raw data")
+            + T.prow("⚙️", "Data Ingestion", "6 tables built from 271,888 rows")
+            + T.prow("🧬", "Feature Engineering", "3 model-ready feature sets")
+            + T.prow("🔎", "Output Audit", "25 checks passed on generated tables")
+            + T.prow("🤖", "Model Training", "3 models trained and validated")
+            + T.prow("📦", "MLflow Registry", "3 models registered, 1 withheld")
+            + "</div>", unsafe_allow_html=True)
+    with right:
+        st.markdown(
+            T.panel_open("Quick Facts", "Measured, not estimated")
+            + T.prow("⚡", "API latency", "21 ms p95 vs a 500 ms budget", bg="#FFF1DC")
+            + T.prow("🎯", "Best MSE", "7,919 · RMSE R$88.99 · MAE R$69.08", bg="#E0EDFF")
+            + T.prow("🧪", "Gender p-value", "0.0099 — significant", bg="#DFF5E6")
+            + T.prow("📉", "Tuning gain", "≤ 0.015 — reformulation won instead", bg="#F3E8FF")
+            + "</div>", unsafe_allow_html=True)
 
 
 def page_flight_price(mode: str, base: str) -> None:
-    st.title("Flight price prediction")
-    st.caption("Objective #1 · gradient boosting on rate-per-km · R² 0.936 on unseen routes")
+    T.section("Flight Price Prediction",
+              "Objective #1 · gradient boosting on rate-per-km · R² 0.936 on unseen routes",
+              "🛫")
 
     ref = get_reference()
     cities = ref["cities"]
 
     with st.form("flight"):
         c1, c2 = st.columns(2)
-        origin = c1.selectbox("From", cities, index=cities.index("Sao Paulo (SP)")
+        origin = c1.selectbox("From", cities,
+                              index=cities.index("Sao Paulo (SP)")
                               if "Sao Paulo (SP)" in cities else 0)
-        dest = c2.selectbox("To", cities, index=cities.index("Rio de Janeiro (RJ)")
+        dest = c2.selectbox("To", cities,
+                            index=cities.index("Rio de Janeiro (RJ)")
                             if "Rio de Janeiro (RJ)" in cities else 1)
         c3, c4, c5 = st.columns(3)
         ftype = c3.selectbox("Class", ref["flight_types"],
@@ -259,8 +279,7 @@ def page_flight_price(mode: str, base: str) -> None:
                              if "firstClass" in ref["flight_types"] else 0)
         agency = c4.selectbox("Agency", ref["agencies"])
         when = c5.date_input("Travel date", value=date.today())
-        submitted = st.form_submit_button("Predict fare", type="primary",
-                                          use_container_width=True)
+        submitted = st.form_submit_button("✈️  Predict fare")
 
     if submitted:
         if origin == dest:
@@ -273,15 +292,25 @@ def page_flight_price(mode: str, base: str) -> None:
             st.error(res["error"])
             return
 
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Predicted fare", f"R$ {res['predicted_price']:,.2f}")
-        m2.metric("Distance", f"{res['derived']['distance_km']:,.0f} km")
-        m3.metric("Price per km",
-                  f"R$ {res['predicted_price']/res['derived']['distance_km']:.2f}")
-        st.caption("Expect roughly ±R$89 (RMSE) on a route the model has not seen "
-                   "in training. On routes already in the network the error is far smaller.")
+        km = res["derived"]["distance_km"]
+        st.markdown('<div class="mgrid">'
+                    + T.metric_card("💰", "Predicted Fare",
+                                    f"R$ {res['predicted_price']:,.0f}",
+                                    f"{origin.split(' (')[0]} → {dest.split(' (')[0]}",
+                                    "Expect roughly ±R$89 on an unseen route",
+                                    T.GRADIENTS["blue"], 1.0, status="Predicted")
+                    + T.metric_card("📏", "Route Distance", f"{km:,.0f}", "kilometres",
+                                    "Derived from the route, not supplied",
+                                    T.GRADIENTS["green"], min(km / 1000, 1.0),
+                                    status="Derived")
+                    + T.metric_card("📊", "Price per km",
+                                    f"R$ {res['predicted_price']/km:.2f}", "unit rate",
+                                    f"{ftype} on {agency}",
+                                    T.GRADIENTS["orange"],
+                                    min(res['predicted_price']/km / 4, 1.0),
+                                    status=ftype)
+                    + '</div>', unsafe_allow_html=True)
 
-        # Compare the three classes on this route
         rows = []
         for ft in ref["flight_types"]:
             r = predict_flight_price(mode, base, {
@@ -291,58 +320,80 @@ def page_flight_price(mode: str, base: str) -> None:
                 rows.append({"Class": ft, "Fare": r["predicted_price"]})
         if rows:
             cmp = pd.DataFrame(rows)
-            fig = px.bar(cmp, x="Class", y="Fare", text_auto=".0f",
-                         color="Class", color_discrete_sequence=PALETTE,
+            fig = px.bar(cmp, x="Class", y="Fare", text_auto=".0f", color="Class",
+                         color_discrete_sequence=T.CHART,
                          title=f"Fare ladder — {origin} → {dest} ({agency})")
-            fig.update_layout(showlegend=False, yaxis_title="fare (R$)")
+            fig.update_layout(showlegend=False, yaxis_title="fare (R$)",
+                              plot_bgcolor="white", height=380)
             st.plotly_chart(fig, use_container_width=True)
 
 
 def page_gender(mode: str, base: str) -> None:
-    st.title("Gender classification")
-    st.caption("Objective #8 · character n-grams over the first name · accuracy 0.884")
+    T.section("Gender Classification",
+              "Objective #8 · character n-grams over the first name · accuracy 0.884", "👥")
 
     st.warning(
-        "**What this model actually does.** Travel behaviour carries no gender signal "
-        "in this dataset (every feature correlates at |r| ≤ 0.06, and behaviour-only "
-        "models measure at chance). The working model infers gender from the **given "
-        "name**, which is a different claim — and it reflects the naming conventions of "
-        "its training data, so it should be re-validated before use on a different "
-        "population. On names never seen in training, accuracy is 0.743.",
-        icon="⚠️")
+        "**What this model actually does.** Travel behaviour carries no gender signal in "
+        "this dataset (every feature correlates at |r| ≤ 0.06, and behaviour-only models "
+        "measure at chance). The working model infers gender from the **given name**, "
+        "which is a different claim — and it reflects the **Brazilian naming conventions** "
+        "of its training data, so it is unreliable on names from other cultures. On names "
+        "never seen in training, accuracy is 0.743.", icon="⚠️")
 
-    name = st.text_input("Full name", value="Charlotte Johnson",
+    c1, c2 = st.columns([2, 1])
+    name = c1.text_input("Full name", value="Charlotte Johnson",
                          placeholder="e.g. Joseph Holsten")
-    if st.button("Classify", type="primary"):
+    c2.markdown("<div style='height:1.85rem'></div>", unsafe_allow_html=True)
+    go = c2.button("🔎  Classify")
+
+    if go:
         res = predict_gender(mode, base, name)
         if "error" in res:
             st.error(res["error"])
             return
-        c1, c2 = st.columns(2)
-        c1.metric("Predicted gender", res["predicted_gender"].title())
-        if res.get("confidence") is not None:
-            c2.metric("Confidence", f"{res['confidence']:.1%}")
-            if res["confidence"] < 0.6:
-                st.info("Low confidence — this name carries little signal either way.")
+        conf = res.get("confidence") or 0
+        grad = T.GRADIENTS["green"] if res["predicted_gender"] == "female" else T.GRADIENTS["blue"]
+        st.markdown('<div class="mgrid" style="grid-template-columns:1fr 1fr">'
+                    + T.metric_card("🧑", "Predicted Gender",
+                                    res["predicted_gender"].title(),
+                                    f"from first name '{res['inputs']['first_name_used']}'",
+                                    "Inferred from the name, not behaviour",
+                                    grad, 1.0, status="Predicted")
+                    + T.metric_card("📉", "Confidence", f"{conf:.1%}", "model certainty",
+                                    "Below 60% means the name carries little signal",
+                                    T.GRADIENTS["orange"] if conf < 0.6 else T.GRADIENTS["green"],
+                                    conf, status="Low" if conf < 0.6 else "Good",
+                                    warn=conf < 0.6)
+                    + '</div>', unsafe_allow_html=True)
 
 
 def page_hotels(mode: str, base: str) -> None:
-    st.title("Hotel recommendations")
-    st.caption("Objective #9 · item-item collaborative filtering · hit@3 0.858 vs 0.333 random")
+    T.section("Hotel Recommendations",
+              "Objective #9 · item-item collaborative filtering · hit@3 0.858 vs 0.333 random",
+              "🏨")
 
     ref = get_reference()
-    c1, c2 = st.columns([3, 1])
-    use_dest = c1.checkbox("I know the destination", value=True)
-    k = c2.slider("How many", 1, 5, 3)
-    destination = c1.selectbox("Destination", ref["cities"]) if use_dest else None
+    c1, c2, c3 = st.columns([1, 2, 1])
+    use_dest = c1.checkbox("Know the destination", value=True)
+    destination = c2.selectbox("Destination", ref["cities"]) if use_dest else None
+    k = c3.slider("How many", 1, 5, 3)
 
-    if st.button("Recommend", type="primary"):
+    if st.button("🔍  Recommend hotels"):
         res = recommend_hotels(mode, base, destination, k)
         if "error" in res:
             st.error(res["error"])
             return
-        recs = pd.DataFrame(res["recommendations"])
-        st.dataframe(recs, use_container_width=True, hide_index=True)
+        recs = res["recommendations"]
+        grads = [T.GRADIENTS["blue"], T.GRADIENTS["green"], T.GRADIENTS["orange"]]
+        cards = "".join(
+            T.metric_card("🏩", f"#{r['rank']}  {r['hotel']}",
+                          f"R$ {r['nightly_rate']:,.0f}" if r.get("nightly_rate") else "—",
+                          "per night", r.get("city") or "",
+                          grads[i % 3], 1 - i * 0.18, status=f"Rank {r['rank']}")
+            for i, r in enumerate(recs[:3]))
+        st.markdown(f'<div class="mgrid">{cards}</div>', unsafe_allow_html=True)
+        if len(recs) > 3:
+            st.dataframe(pd.DataFrame(recs[3:]), use_container_width=True, hide_index=True)
         if destination:
             st.info("Each city has exactly one hotel, so a known destination gives an "
                     "exact match — no model needed. Ranking only matters when the "
@@ -350,29 +401,30 @@ def page_hotels(mode: str, base: str) -> None:
 
 
 def page_insights() -> None:
-    st.title("Data insights")
-    st.caption("Findings from the exploratory analysis")
+    T.section("Data Insights", "Findings from the exploratory analysis", "🔍")
 
     catalog = get_table("hotel_catalog")
     users = get_table("users_features",
                       ["code", "company", "gender", "age", "age_band", "home_city",
                        "n_trips", "total_spend", "recency_days"])
 
-    t1, t2, t3 = st.tabs(["Hotels", "Travellers", "Trips"])
+    t1, t2, t3 = st.tabs(["🏨  Hotels", "👥  Travellers", "🧳  Trips"])
 
     with t1:
         c1, c2 = st.columns(2)
         fig = px.bar(catalog.sort_values("revenue", ascending=False),
                      x="place", y="revenue", color="nightly_rate",
-                     color_continuous_scale="Greens",
+                     color_continuous_scale="Teal",
                      title="Hotel revenue by city (colour = nightly rate)")
-        fig.update_layout(xaxis_title="", yaxis_title="revenue (R$)")
+        fig.update_layout(xaxis_title="", yaxis_title="revenue (R$)",
+                          plot_bgcolor="white", height=400)
         c1.plotly_chart(fig, use_container_width=True)
         fig2 = px.scatter(catalog, x="nightly_rate", y="bookings", text="hotel",
                           size="revenue", color="place",
-                          color_discrete_sequence=PALETTE,
+                          color_discrete_sequence=T.CHART,
                           title="Rate vs demand — one hotel per city")
         fig2.update_traces(textposition="top center")
+        fig2.update_layout(plot_bgcolor="white", height=400)
         c2.plotly_chart(fig2, use_container_width=True)
         st.caption("Revenue is volume × a fixed nightly rate. Because each city has "
                    "exactly one hotel, price competition does not exist in this data — "
@@ -380,23 +432,27 @@ def page_insights() -> None:
 
     with t2:
         c1, c2 = st.columns(2)
-        fig = px.histogram(users, x="age", nbins=22, color_discrete_sequence=[PALETTE[0]],
+        fig = px.histogram(users, x="age", nbins=22,
+                           color_discrete_sequence=[T.CHART[0]],
                            title="Age distribution")
+        fig.update_layout(plot_bgcolor="white", height=380)
         c1.plotly_chart(fig, use_container_width=True)
-        gender_counts = users["gender"].value_counts().reset_index()
-        gender_counts.columns = ["gender", "count"]
-        fig2 = px.pie(gender_counts, names="gender", values="count", hole=0.45,
-                      color_discrete_sequence=PALETTE,
+        gc = users["gender"].value_counts().reset_index()
+        gc.columns = ["gender", "count"]
+        fig2 = px.pie(gc, names="gender", values="count", hole=0.5,
+                      color_discrete_sequence=T.CHART,
                       title="Gender — 'none' is undisclosed, not a category")
+        fig2.update_layout(height=380)
         c2.plotly_chart(fig2, use_container_width=True)
 
         spend = (users.dropna(subset=["total_spend"])
                  .groupby("company", observed=True)["total_spend"].mean()
                  .reset_index().sort_values("total_spend"))
         fig3 = px.bar(spend, x="total_spend", y="company", orientation="h",
-                      color_discrete_sequence=[PALETTE[1]],
+                      color_discrete_sequence=[T.CHART[1]],
                       title="Mean lifetime spend by company")
-        fig3.update_layout(xaxis_title="R$", yaxis_title="")
+        fig3.update_layout(xaxis_title="R$", yaxis_title="",
+                           plot_bgcolor="white", height=340)
         st.plotly_chart(fig3, use_container_width=True)
         st.caption("Spend is essentially flat across companies and age bands "
                    "(correlations ≈ 0). Customer value here is behavioural, not "
@@ -406,20 +462,20 @@ def page_insights() -> None:
         trips = get_table("trips", ["dest", "origin", "flightType", "agency",
                                     "trip_nights", "has_hotel", "trip_spend"])
         c1, c2 = st.columns(2)
-        dest_counts = trips["dest"].value_counts().reset_index()
-        dest_counts.columns = ["destination", "trips"]
-        fig = px.bar(dest_counts, x="trips", y="destination", orientation="h",
-                     color_discrete_sequence=[PALETTE[0]], title="Trips by destination")
-        fig.update_layout(yaxis_title="")
+        dc = trips["dest"].value_counts().reset_index()
+        dc.columns = ["destination", "trips"]
+        fig = px.bar(dc, x="trips", y="destination", orientation="h",
+                     color_discrete_sequence=[T.CHART[0]], title="Trips by destination")
+        fig.update_layout(yaxis_title="", plot_bgcolor="white", height=400)
         c1.plotly_chart(fig, use_container_width=True)
 
         attach = (trips.groupby("dest", observed=True)["has_hotel"]
                   .mean().reset_index().sort_values("has_hotel"))
         fig2 = px.bar(attach, x="has_hotel", y="dest", orientation="h",
-                      color_discrete_sequence=[PALETTE[5]],
+                      color_discrete_sequence=[T.CHART[4]],
                       title="Hotel attach rate by destination")
         fig2.update_layout(xaxis_title="share of trips with a hotel", yaxis_title="",
-                           xaxis_tickformat=".0%")
+                           xaxis_tickformat=".0%", plot_bgcolor="white", height=400)
         c2.plotly_chart(fig2, use_container_width=True)
         st.caption("The attach rate sits near 30% everywhere — flat across destinations, "
                    "classes, agencies and years. That uniformity is precisely why the "
@@ -427,10 +483,10 @@ def page_insights() -> None:
 
 
 def page_performance() -> None:
-    st.title("Model performance")
-    st.caption("Measured results, including the ones that did not work")
+    T.section("Model Performance", "Measured results, including the ones that did not work",
+              "🎯")
 
-    t1, t2, t3 = st.tabs(["Flight price", "Validation", "Tuning"])
+    t1, t2, t3 = st.tabs(["✈️  Flight price", "🧪  Validation", "⚙️  Tuning"])
 
     with t1:
         fp = get_report("flight_price_metrics")
@@ -443,8 +499,9 @@ def page_performance() -> None:
             piv = res.pivot(index="model", columns="split", values="r2").reset_index()
             fig = px.bar(piv.melt(id_vars="model", var_name="split", value_name="r2"),
                          x="model", y="r2", color="split", barmode="group",
-                         color_discrete_sequence=[PALETTE[0], PALETTE[5]],
+                         color_discrete_sequence=[T.CHART[0], T.CHART[4]],
                          title="R² — random split vs held-out routes")
+            fig.update_layout(plot_bgcolor="white", height=420)
             st.plotly_chart(fig, use_container_width=True)
             st.error(
                 "**The reason the split matters.** On a random split gradient boosting "
@@ -453,8 +510,8 @@ def page_performance() -> None:
                 "candidates. Reporting the random-split number would have shipped a "
                 "model that degrades the moment a new route opens.", icon="🚨")
             st.dataframe(res[res.split == "grouped"][
-                ["model", "mse", "rmse", "mae", "r2", "mape_pct"]]
-                .sort_values("mse"), use_container_width=True, hide_index=True)
+                ["model", "mse", "rmse", "mae", "r2", "mape_pct"]].sort_values("mse"),
+                use_container_width=True, hide_index=True)
 
     with t2:
         val = get_report("model_validation")
@@ -482,52 +539,61 @@ result is not an artefact of a lucky split.
                                "gain", "meaningful"]],
                          use_container_width=True, hide_index=True)
             st.info(
-                "**Tuning was not where the wins came from.** Reformulating the "
-                "problem delivered an order of magnitude more: predicting rate-per-km "
-                "instead of raw price cut MSE by 49%, and switching to first-name "
-                "features lifted gender accuracy by 0.38. Every hyperparameter search "
-                "after that returned changes within fold-to-fold noise.", icon="💡")
+                "**Tuning was not where the wins came from.** Reformulating the problem "
+                "delivered an order of magnitude more: predicting rate-per-km instead of "
+                "raw price cut MSE by 49%, and switching to first-name features lifted "
+                "gender accuracy by 0.38. Every hyperparameter search after that returned "
+                "changes within fold-to-fold noise.", icon="💡")
 
 
 # --------------------------------------------------------------------------- #
 # Shell                                                                        #
 # --------------------------------------------------------------------------- #
+PAGES = {
+    "🏠  Home": "home",
+    "🛫  Flight Price": "flight",
+    "👥  Gender": "gender",
+    "🏨  Hotels": "hotels",
+    "🔍  Data Insights": "insights",
+    "📈  Dashboard": "dashboard",
+    "🎯  Performance": "performance",
+}
+
+
 def main() -> None:
-    with st.sidebar:
-        st.title("✈️ Voyage Analytics")
-        page = st.radio("Navigate", [
-            "Overview", "Flight price", "Gender", "Hotels",
-            "Data insights", "Model performance"], label_visibility="collapsed")
+    T.inject_css()
+    T.navbar()
 
-        st.divider()
-        st.caption("Prediction source")
-        mode = st.radio("mode", ["direct", "api"],
-                        format_func=lambda m: {"direct": "Load models in-process",
-                                               "api": "Call the Flask API"}[m],
-                        label_visibility="collapsed")
-        base = API_DEFAULT
-        if mode == "api":
-            base = st.text_input("API base URL", value=API_DEFAULT)
-            if api_is_up(base):
-                st.success("API reachable", icon="✅")
-            else:
-                st.error("API not reachable — start it with "
-                         "`python -m src.serving`", icon="🚫")
+    nav, src = st.columns([4, 1])
+    with nav:
+        label = st.radio("nav", list(PAGES), horizontal=True, label_visibility="collapsed")
+    with src:
+        mode = st.selectbox("Prediction source", ["direct", "api"],
+                            format_func=lambda m: {"direct": "⚡ In-process",
+                                                   "api": "🌐 Flask API"}[m],
+                            label_visibility="collapsed")
 
-        st.divider()
-        st.caption("Brazilian corporate travel · 2019–2023\n\n"
-                   "9 cities · 70 routes · 271,888 flight legs")
+    base = API_DEFAULT
+    if mode == "api":
+        base = st.text_input("API base URL", value=API_DEFAULT)
+        if api_is_up(base):
+            st.success("API reachable", icon="✅")
+        else:
+            st.error("API not reachable — start it with `python -m src.serving`", icon="🚫")
 
-    if page == "Overview":
-        page_overview()
-    elif page == "Flight price":
+    page = PAGES[label]
+    if page == "home":
+        page_home()
+    elif page == "flight":
         page_flight_price(mode, base)
-    elif page == "Gender":
+    elif page == "gender":
         page_gender(mode, base)
-    elif page == "Hotels":
+    elif page == "hotels":
         page_hotels(mode, base)
-    elif page == "Data insights":
+    elif page == "insights":
         page_insights()
+    elif page == "dashboard":
+        page_dashboard()
     else:
         page_performance()
 

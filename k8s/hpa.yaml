@@ -1,0 +1,60 @@
+# Horizontal Pod Autoscaler — the "handle varying loads" half of objective #4.
+#
+# Scaling this service is unusually cheap: the pods are stateless (models are
+# baked into the image, no shared storage) so a new replica needs nothing but
+# its own boot time.
+#
+# That boot time is the constraint. Because a cold start costs 9–16 s, the
+# scale-up policy is deliberately aggressive and scale-down deliberately slow —
+# adding a pod too late means requests queue behind a container that is still
+# loading, while removing one too early means paying that cost again on the next
+# traffic bump.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: voyage-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: voyage-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30      # react quickly; new pods boot slowly
+      policies:
+        - type: Percent
+          value: 100                      # allow doubling
+          periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300     # five calm minutes before shrinking
+      policies:
+        - type: Pod
+          value: 1
+          periodSeconds: 60
+---
+# Keep at least one pod serving during voluntary disruptions (node drains,
+# cluster upgrades).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: voyage-api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: voyage-api
