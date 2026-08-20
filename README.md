@@ -9,8 +9,7 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML%20Pipelines-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
 ![pytest](https://img.shields.io/badge/pytest-17%20Passed-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
 
-Productionization of ML systems on real-world travel data (users, flights, hotels).  
-Capstone project implementing an end-to-end MLOps pipeline: ingestion → feature engineering → training → serving → monitoring.
+
 
 ## System Architecture
 
