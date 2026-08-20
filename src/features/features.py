@@ -61,6 +61,10 @@ FEATURE_REGISTRY: tuple[FeatureSpec, ...] = (
     FeatureSpec("age", "int", "users", "Traveller age in years (21-65)"),
     FeatureSpec("company", "category", "users", "Employer; deterministically encodes home city"),
     FeatureSpec("home_city", "category", "trips", "Most frequent outbound origin"),
+    FeatureSpec("first_name", "text", "users",
+                "Given name, lower-cased. Consumed as character n-grams by the "
+                "gender classifier — the only feature in this project that "
+                "predicts gender, since travel behaviour does not."),
     # --- RFM ----------------------------------------------------------------
     FeatureSpec("n_trips", "int", "trips", "Frequency: completed round trips"),
     FeatureSpec("recency_days", "int", "trips", "Days since last departure (snapshot = max date)"),
@@ -85,6 +89,20 @@ FEATURE_REGISTRY: tuple[FeatureSpec, ...] = (
 def registry_frame() -> pd.DataFrame:
     """Return the feature registry as a DataFrame for display/docs."""
     return pd.DataFrame([f.__dict__ for f in FEATURE_REGISTRY])
+
+
+def registry_names() -> set[str]:
+    """The registered feature names.
+
+    ``FEATURE_REGISTRY`` holds :class:`FeatureSpec` objects, so a bare
+    ``"age" in FEATURE_REGISTRY`` is always False. Use this for membership.
+    """
+    return {f.name for f in FEATURE_REGISTRY}
+
+
+def describe(name: str) -> FeatureSpec | None:
+    """Look up one feature's spec by name."""
+    return next((f for f in FEATURE_REGISTRY if f.name == name), None)
 
 
 # =========================================================================== #

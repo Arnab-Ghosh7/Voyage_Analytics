@@ -15,6 +15,8 @@ from .features import (
     FeatureSpec,
     FEATURE_REGISTRY,
     registry_frame,
+    registry_names,
+    describe,
     make_preprocessor,
     # builders
     build_user_behaviour,
@@ -34,6 +36,8 @@ __all__ = [
     "FeatureSpec",
     "FEATURE_REGISTRY",
     "registry_frame",
+    "registry_names",
+    "describe",
     "make_preprocessor",
     "build_user_behaviour",
     "build_gender_features",

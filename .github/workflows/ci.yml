@@ -64,9 +64,14 @@ jobs:
       - name: Install dependencies
         # The serving subset plus pytest — the full requirements file pulls in
         # jupyter and mlflow, which CI does not need.
+        #
+        # streamlit is added because tests/test_theme.py imports the dashboard
+        # design system, and theme.py imports streamlit at module level. Without
+        # it that test errors on import rather than skipping, which is what broke
+        # the first CI run.
         run: |
           pip install -r docker/requirements-serve.txt
-          pip install pytest==8.3.3
+          pip install pytest==8.3.3 streamlit==1.38.0
 
       - name: Verify every module imports
         # Catches broken imports before the slower steps run.
