@@ -1,5 +1,13 @@
 
-
+# Voyage Analytics — Integrating MLOps in Travel
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-K8s%20Deployment-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![MLflow](https://img.shields.io/badge/MLflow-Tracking%20%26%20Registry-0185CA?style=for-the-badge&logo=mlflow&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-REST%20API-000000?style=for-the-badge&logo=flask&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML%20Pipelines-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-17%20Passed-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
 
 
 
